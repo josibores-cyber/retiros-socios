@@ -534,6 +534,15 @@ function PantallaCierre({cheques,onAcreditar,config}) {
       {pend.length===0
         ? <div style={{textAlign:'center',color:'var(--sub)',padding:'40px 0',fontSize:14}}>{done?'Cierre realizado!':'No hay cheques pendientes para este periodo.'}</div>
         : <>
+          {/* Resumen y boton ARRIBA */}
+          <Card style={{background:'var(--card2)',marginBottom:8}}>
+            <div style={{fontWeight:600,marginBottom:10,fontSize:14}}>Resumen</div>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><span style={{color:'var(--blue)'}}>{socios[0]}</span><span style={{fontFamily:'DM Mono',color:'var(--blue)'}}>{fmt(totS0)}</span></div>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}><span style={{color:'var(--purple)'}}>{socios[1]}</span><span style={{fontFamily:'DM Mono',color:'var(--purple)'}}>{fmt(totS1)}</span></div>
+            <button onClick={acreditar} disabled={proc||done||selItems.length===0} className="tap" style={{width:'100%',padding:14,borderRadius:12,background:done?'var(--green)':selItems.length===0?'var(--muted)':'var(--accent)',color:'#0d0f18',fontFamily:'Syne',fontSize:16,fontWeight:800}}>
+              {done?'Acreditado':proc?'Procesando...':selItems.length===0?'Selecciona cheques para acreditar':'Acreditar y generar retiros'}
+            </button>
+          </Card>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             <button onClick={()=>{const a={};pend.forEach(c=>a[c.id]=true);setSel(a);}} className="tap" style={{background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',padding:'7px 14px',borderRadius:10,fontSize:13,fontWeight:600}}>Todos</button>
             <button onClick={()=>setSel({})} className="tap" style={{background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',padding:'7px 14px',borderRadius:10,fontSize:13,fontWeight:600}}>Ninguno</button>
@@ -553,23 +562,14 @@ function PantallaCierre({cheques,onAcreditar,config}) {
                     <Pill color={dColor(c.destino)}>{dLabel(c.destino)}</Pill>
                   </div>
                   <div style={{fontSize:12,color:'var(--sub)',marginTop:3}}>
-                    #{c.numero||'—'} - cobro: {c.fecha_cobro||'—'}
+                    {c.destinatario&&<span style={{color:'var(--text)',marginRight:6}}>{c.destinatario} ·</span>}
+                    #{c.numero||'—'} · cobro: {c.fecha_cobro||'—'}
                     {c.destino==='ambos'&&s&&<span style={{color:'var(--accent)',marginLeft:6}}>{fmt(c.monto/2)} c/u</span>}
                   </div>
                 </div>
               </div>
             );
           })}
-          {selItems.length>0&&(
-            <Card style={{background:'var(--card2)'}}>
-              <div style={{fontWeight:600,marginBottom:12,fontSize:14}}>Resumen</div>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><span style={{color:'var(--blue)'}}>{socios[0]}</span><span style={{fontFamily:'DM Mono',color:'var(--blue)'}}>{fmt(totS0)}</span></div>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:16}}><span style={{color:'var(--purple)'}}>{socios[1]}</span><span style={{fontFamily:'DM Mono',color:'var(--purple)'}}>{fmt(totS1)}</span></div>
-              <button onClick={acreditar} disabled={proc||done} className="tap" style={{width:'100%',padding:14,borderRadius:12,background:done?'var(--green)':'var(--accent)',color:'#0d0f18',fontFamily:'Syne',fontSize:16,fontWeight:800}}>
-                {done?'Acreditado':proc?'Procesando...':'Acreditar y generar retiros'}
-              </button>
-            </Card>
-          )}
         </>
       }
     </div>
