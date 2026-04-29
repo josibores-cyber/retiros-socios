@@ -272,12 +272,15 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
   const [fechaEmision,setFechaEmision] = useState('');
   const [fechaCobro,setFechaCobro] = useState('');
   const [destino,setDestino] = useState('ambos');
+  const [destinatario,setDestinatario] = useState('');
   const [saved,setSaved] = useState(false);
   const {socios} = config;
   const dColor = v=>v==='ambos'?'var(--accent)':v==='s0'?'var(--blue)':'var(--purple)';
   const dLabel = v=>v==='ambos'?'Ambos':v==='s0'?socios[0]:socios[1];
-  const pendientes = cheques.filter(c=>c.estado==='pendiente').sort((a,b)=>b.created_at-a.created_at);
-  const acreditados = cheques.filter(c=>c.estado==='acreditado').sort((a,b)=>b.acreditado_en-a.acreditado_en).slice(0,10);
+  const [filtroDestinatario,setFiltroDestinatario] = useState('');
+  const todosDestinatarios = [...new Set(cheques.map(c=>c.destinatario).filter(Boolean))].sort();
+  const pendientes = cheques.filter(c=>c.estado==='pendiente'&&(!filtroDestinatario||c.destinatario===filtroDestinatario)).sort((a,b)=>b.created_at-a.created_at);
+  const acreditados = cheques.filter(c=>c.estado==='acreditado'&&(!filtroDestinatario||c.destinatario===filtroDestinatario)).sort((a,b)=>b.acreditado_en-a.acreditado_en).slice(0,10);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -328,7 +331,7 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
 
   const volver = () => {
     setCapturada(null); setOcrOk(false); setOcrErr(null);
-    setNumero(''); setBanco(''); setMonto(''); setFechaCarga(today()); setFechaEmision(''); setFechaCobro(''); setDestino('ambos');
+    setNumero(''); setBanco(''); setMonto(''); setFechaCarga(today()); setFechaEmision(''); setFechaCobro(''); setDestino('ambos'); setDestinatario('');
     setVista('lista');
   };
 
@@ -343,6 +346,7 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
       fecha_emision:fechaEmision,
       fecha_cobro:fechaCobro,
       destino,
+      destinatario,
       estado:'pendiente',
       cargado_por:socios[socioIdx],
       created_at:Date.now()
@@ -414,7 +418,8 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
               </div>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              <div><Lbl>Fecha de carga</Lbl><input type="date" value={fechaCarga} onChange={e=>setFechaCarga(e.target.value)}/></div>
+              <div><Lbl>Destinatario</Lbl><input type="text" placeholder="Ej: Colegio San Jose" value={destinatario} onChange={e=>setDestinatario(e.target.value)}/></div>
+            <div><Lbl>Fecha de carga</Lbl><input type="date" value={fechaCarga} onChange={e=>setFechaCarga(e.target.value)}/></div>
               <div><Lbl>Fecha de emision</Lbl><input type="date" value={fechaEmision} onChange={e=>setFechaEmision(e.target.value)}/></div>
             </div>
             <div><Lbl>Fecha de cobro</Lbl><input type="date" value={fechaCobro} onChange={e=>setFechaCobro(e.target.value)}/></div>
@@ -439,6 +444,14 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
 
       {vista==='lista' && (
         <>
+          {todosDestinatarios.length>0&&(
+            <div style={{marginBottom:8}}>
+              <select value={filtroDestinatario} onChange={e=>setFiltroDestinatario(e.target.value)}>
+                <option value=''>Todos los destinatarios</option>
+                {todosDestinatarios.map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          )}
           <div style={{fontSize:12,color:'var(--sub)',fontWeight:600,letterSpacing:'0.07em',textTransform:'uppercase'}}>Pendientes ({pendientes.length})</div>
           {pendientes.length===0
             ? <div style={{color:'var(--sub)',fontSize:14,padding:'20px 0'}}>No hay cheques pendientes.</div>
@@ -447,8 +460,9 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
                   <div>
                     <div style={{fontFamily:'DM Mono',fontSize:18,fontWeight:500,color:'var(--accent)',marginBottom:4}}>{fmt(c.monto)}</div>
-                    <div style={{fontSize:13}}>Cheque #{c.numero}</div>
-                    <div style={{fontSize:12,color:'var(--sub)',marginTop:2}}>Cargado: {c.fecha_carga} - Cobro: {c.fecha_cobro||'—'}</div>
+                    <div style={{fontSize:13,fontWeight:600}}>#{c.numero} · {c.banco||'—'}</div>
+                    {c.destinatario&&<div style={{fontSize:12,color:'var(--accent)',marginTop:2}}>Para: {c.destinatario}</div>}
+                    <div style={{fontSize:12,color:'var(--sub)',marginTop:2}}>Emisión: {c.fecha_emision||'—'} · Cobro: {c.fecha_cobro||'—'}</div>
                     <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>por {c.cargado_por}</div>
                   </div>
                   <Pill color={dColor(c.destino)}>{dLabel(c.destino)}</Pill>
