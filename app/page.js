@@ -406,6 +406,7 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
           {ocrOk && <div style={{background:'var(--green)18',border:'1px solid var(--green)44',borderRadius:10,padding:'8px 12px',fontSize:13,color:'var(--green)',marginBottom:14}}>Datos extraidos. Revisa y corrige si hace falta.</div>}
           {ocrErr && <div style={{background:'var(--red)18',border:'1px solid var(--red)44',borderRadius:10,padding:'8px 12px',fontSize:13,color:'var(--red)',marginBottom:14}}>{ocrErr}</div>}
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div><Lbl>Destinatario</Lbl><input type="text" placeholder="Ej: Colegio San Jose" value={destinatario} onChange={e=>setDestinatario(e.target.value)}/></div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               <div><Lbl>Nro. cheque</Lbl><input type="text" placeholder="00012345" value={numero} onChange={e=>setNumero(e.target.value)}/></div>
               <div><Lbl>Banco</Lbl><input type="text" placeholder="Ej: Galicia" value={banco} onChange={e=>setBanco(e.target.value)}/></div>
@@ -418,11 +419,10 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
               </div>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              <div><Lbl>Destinatario</Lbl><input type="text" placeholder="Ej: Colegio San Jose" value={destinatario} onChange={e=>setDestinatario(e.target.value)}/></div>
-            <div><Lbl>Fecha de carga</Lbl><input type="date" value={fechaCarga} onChange={e=>setFechaCarga(e.target.value)}/></div>
               <div><Lbl>Fecha de emision</Lbl><input type="date" value={fechaEmision} onChange={e=>setFechaEmision(e.target.value)}/></div>
+              <div><Lbl>Fecha de cobro</Lbl><input type="date" value={fechaCobro} onChange={e=>setFechaCobro(e.target.value)}/></div>
             </div>
-            <div><Lbl>Fecha de cobro</Lbl><input type="date" value={fechaCobro} onChange={e=>setFechaCobro(e.target.value)}/></div>
+            <div><Lbl>Fecha de carga</Lbl><input type="date" value={fechaCarga} onChange={e=>setFechaCarga(e.target.value)}/></div>
             <div>
               <Lbl>Este gasto es de...</Lbl>
               <div style={{display:'flex',gap:8}}>
