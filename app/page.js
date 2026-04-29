@@ -44,9 +44,7 @@ async function loadCheques() {
   const { data } = await supabase.from('cheques').select('*').order('created_at',{ascending:false});
   return data || [];
 }
-async function saveCheque(c) {
-  await supabase.from('cheques').insert(c);
-}
+
 async function acreditarCheques(ids, now) {
   await supabase.from('cheques').update({ estado:'acreditado', acreditado_en:now }).in('id',ids);
 }
@@ -268,8 +266,10 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
   const [ocrOk,setOcrOk] = useState(false);
   const [ocrErr,setOcrErr] = useState(null);
   const [numero,setNumero] = useState('');
+  const [banco,setBanco] = useState('');
   const [monto,setMonto] = useState('');
   const [fechaCarga,setFechaCarga] = useState(today());
+  const [fechaEmision,setFechaEmision] = useState('');
   const [fechaCobro,setFechaCobro] = useState('');
   const [destino,setDestino] = useState('ambos');
   const [saved,setSaved] = useState(false);
@@ -315,8 +315,10 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
       if(!data.ok){ setOcrErr('No reconoci un cheque. Completa los datos manualmente.'); }
       else {
         setNumero(data.numero||'');
+        setBanco(data.banco||'');
         setMonto(data.monto?String(data.monto):'');
-        setFechaCobro(data.fecha_cobro||'');
+        setFechaEmision(data.fecha||'');
+        setFechaCobro(data.fecha_cobro||data.fecha||'');
         setOcrOk(true);
       }
     } catch(e){ setOcrErr('Error al analizar. Completa manualmente.'); }
@@ -326,16 +328,28 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
 
   const volver = () => {
     setCapturada(null); setOcrOk(false); setOcrErr(null);
-    setNumero(''); setMonto(''); setFechaCarga(today()); setFechaCobro(''); setDestino('ambos');
+    setNumero(''); setBanco(''); setMonto(''); setFechaCarga(today()); setFechaEmision(''); setFechaCobro(''); setDestino('ambos');
     setVista('lista');
   };
 
   const guardar = async () => {
     if(!numero||!monto) return;
-    const nuevo = {id:uid(),numero,monto:parseFloat(monto),fecha_carga:fechaCarga,fecha_cobro:fechaCobro,destino,estado:'pendiente',cargado_por:socios[socioIdx],created_at:Date.now()};
-    await onSaveCheque(nuevo);
-    setSaved(true);
-    setTimeout(()=>{ setSaved(false); volver(); },1500);
+    const nuevo = {
+      id:uid(),
+      numero,
+      banco,
+      monto:parseFloat(monto),
+      fecha_carga:fechaCarga,
+      fecha_emision:fechaEmision,
+      fecha_cobro:fechaCobro,
+      destino,
+      estado:'pendiente',
+      cargado_por:socios[socioIdx],
+      created_at:Date.now()
+    };
+    const ok = await onSaveCheque(nuevo);
+    if(ok){ setSaved(true); setTimeout(()=>{ setSaved(false); volver(); },1500); }
+    else { setOcrErr('Error al guardar. Verifica la conexion e intentalo de nuevo.'); }
   };
 
   const destOpts = [{v:'ambos',label:'Ambos (50/50)',color:'var(--accent)'},{v:'s0',label:socios[0],color:'var(--blue)'},{v:'s1',label:socios[1],color:'var(--purple)'}];
@@ -388,7 +402,10 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
           {ocrOk && <div style={{background:'var(--green)18',border:'1px solid var(--green)44',borderRadius:10,padding:'8px 12px',fontSize:13,color:'var(--green)',marginBottom:14}}>Datos extraidos. Revisa y corrige si hace falta.</div>}
           {ocrErr && <div style={{background:'var(--red)18',border:'1px solid var(--red)44',borderRadius:10,padding:'8px 12px',fontSize:13,color:'var(--red)',marginBottom:14}}>{ocrErr}</div>}
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            <div><Lbl>Numero de cheque</Lbl><input type="text" placeholder="Ej: 00012345" value={numero} onChange={e=>setNumero(e.target.value)}/></div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div><Lbl>Nro. cheque</Lbl><input type="text" placeholder="00012345" value={numero} onChange={e=>setNumero(e.target.value)}/></div>
+              <div><Lbl>Banco</Lbl><input type="text" placeholder="Ej: Galicia" value={banco} onChange={e=>setBanco(e.target.value)}/></div>
+            </div>
             <div>
               <Lbl>Importe ($)</Lbl>
               <div style={{position:'relative'}}>
@@ -398,8 +415,9 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               <div><Lbl>Fecha de carga</Lbl><input type="date" value={fechaCarga} onChange={e=>setFechaCarga(e.target.value)}/></div>
-              <div><Lbl>Fecha de cobro</Lbl><input type="date" value={fechaCobro} onChange={e=>setFechaCobro(e.target.value)}/></div>
+              <div><Lbl>Fecha de emision</Lbl><input type="date" value={fechaEmision} onChange={e=>setFechaEmision(e.target.value)}/></div>
             </div>
+            <div><Lbl>Fecha de cobro</Lbl><input type="date" value={fechaCobro} onChange={e=>setFechaCobro(e.target.value)}/></div>
             <div>
               <Lbl>Este gasto es de...</Lbl>
               <div style={{display:'flex',gap:8}}>
@@ -637,7 +655,12 @@ export default function App() {
   },[]);
 
   useEffect(()=>{
-    const iv=setInterval(()=>loadCheques().then(setChequesState),30000);
+    const iv=setInterval(async ()=>{
+      try {
+        const data = await loadCheques();
+        if(data && data.length >= 0) setChequesState(data);
+      } catch(e) { console.error('Refresh error:', e); }
+    },30000);
     return ()=>clearInterval(iv);
   },[]);
 
@@ -657,8 +680,12 @@ export default function App() {
   const handleDeleteRetiro = (id) => handleSaveRetiros(retiros.filter(r=>r.id!==id));
 
   const handleSaveCheque = async (nuevo) => {
-    await saveCheque(nuevo);
-    setChequesState(prev=>[nuevo,...prev]);
+    try {
+      const { error } = await supabase.from('cheques').insert(nuevo);
+      if(error) { console.error('Supabase error:', error); return false; }
+      setChequesState(prev=>[nuevo,...prev]);
+      return true;
+    } catch(e) { console.error('Save error:', e); return false; }
   };
 
   const handleAcreditar = async (ids, now, ret0, ret1) => {
