@@ -286,8 +286,23 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const url = ev.target.result;
-      setCapturada(url.split(',')[1]);
-      setCapturadaMime(file.type||'image/jpeg');
+      // Comprimir imagen antes de enviar (max 1280px, calidad 0.7)
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 1280;
+        let w = img.width, h = img.height;
+        if(w > MAX || h > MAX) {
+          if(w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        setCapturada(compressed.split(',')[1]);
+        setCapturadaMime('image/jpeg');
+      };
+      img.src = url;
     };
     reader.readAsDataURL(file);
   };
