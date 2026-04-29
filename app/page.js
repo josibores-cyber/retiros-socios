@@ -317,7 +317,7 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
         setNumero(data.numero||'');
         setBanco(data.banco||'');
         setMonto(data.monto?String(data.monto):'');
-        setFechaEmision(data.fecha||'');
+        setFechaEmision(data.fecha_emision||data.fecha||'');
         setFechaCobro(data.fecha_cobro||data.fecha||'');
         setOcrOk(true);
       }
