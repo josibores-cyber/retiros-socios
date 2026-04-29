@@ -681,16 +681,13 @@ export default function App() {
 
   const handleSaveCheque = async (nuevo) => {
     try {
-      const res = await fetch('/api/save-cheque', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(nuevo)
-      });
-      const data = await res.json();
-      if(!data.ok) { console.error('Save error:', data.error); return false; }
+      // Convertir created_at a string para Supabase
+      const data = {...nuevo, created_at: String(nuevo.created_at)};
+      const { error } = await supabase.from('cheques').insert(data);
+      if(error) { console.error('Supabase error:', JSON.stringify(error)); return false; }
       setChequesState(prev=>[nuevo,...prev]);
       return true;
-    } catch(e) { console.error('Save error:', e); return false; }
+    } catch(e) { console.error('Save error:', e.message); return false; }
   };
 
   const handleAcreditar = async (ids, now, ret0, ret1) => {
