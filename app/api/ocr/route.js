@@ -18,7 +18,7 @@ export async function POST(req) {
             { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } },
             {
               type: 'text',
-              text: 'Analizá esta imagen de un cheque bancario argentino. Respondé SOLO con JSON sin markdown ni backticks: {"numero":"12345","monto":15000.50,"fecha_cobro":"2025-04-15","ok":true}. Si no podés leer un campo poné null. Si no es un cheque poné ok:false.',
+              text: 'Analiza esta imagen de un cheque bancario argentino. Responde SOLO con JSON sin markdown ni backticks: {"banco":"Nombre del banco","numero":"12345","monto":15000.50,"fecha_emision":"2025-03-01","fecha_cobro":"2025-04-15","ok":true}. fecha_emision es la fecha impresa en el cheque. fecha_cobro es la fecha de vencimiento o cobro. Si no podes leer un campo pone null. Si no es un cheque pone ok:false.',
             },
           ],
         }],
