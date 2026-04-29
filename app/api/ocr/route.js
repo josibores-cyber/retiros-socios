@@ -18,7 +18,7 @@ export async function POST(req) {
             { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } },
             {
               type: 'text',
-              text: 'Analiza esta imagen de un cheque bancario argentino. Responde SOLO con JSON sin markdown ni backticks: {"banco":"Nombre del banco","numero":"12345","monto":15000.50,"fecha_emision":"2025-03-01","fecha_cobro":"2025-04-15","ok":true}. fecha_emision es la fecha impresa en el cheque. fecha_cobro es la fecha de vencimiento o cobro. Si no podes leer un campo pone null. Si no es un cheque pone ok:false.',
+              text: 'Sos un experto en lectura de cheques bancarios argentinos. Analiza con MUCHO cuidado esta imagen. Responde SOLO con JSON sin markdown ni backticks: {"banco":"Nombre del banco","numero":"12345","monto":438512.50,"fecha_emision":"2025-03-01","fecha_cobro":"2025-04-15","ok":true}. IMPORTANTE: lee el monto digito por digito con maxima precision, no confundas numeros similares. fecha_emision es la fecha de emision impresa en el cuerpo del cheque. fecha_cobro es la fecha de vencimiento o pago diferido. Si no podes leer un campo pone null. Si no es un cheque pone ok:false.',
             },
           ],
         }],
