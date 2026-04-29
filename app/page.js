@@ -261,12 +261,9 @@ function PantallaHistorial({retiros,socio,onDelete}) {
 
 function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
   const [vista,setVista] = useState('lista');
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const [camActiva,setCamActiva] = useState(false);
-  const [capturada,setCapturada] = useState(null);
-  const [camErr,setCamErr] = useState(null);
+  const fileInputRef = useRef(null);
+  const [capturada,setCapturada] = useState(null); // base64
+  const [capturadaMime,setCapturadaMime] = useState('image/jpeg');
   const [analizando,setAnalizando] = useState(false);
   const [ocrOk,setOcrOk] = useState(false);
   const [ocrErr,setOcrErr] = useState(null);
@@ -282,34 +279,23 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
   const pendientes = cheques.filter(c=>c.estado==='pendiente').sort((a,b)=>b.created_at-a.created_at);
   const acreditados = cheques.filter(c=>c.estado==='acreditado').sort((a,b)=>b.acreditado_en-a.acreditado_en).slice(0,10);
 
-  const iniciarCamara = async () => {
-    setCamErr(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920}}});
-      streamRef.current = stream;
-      if(videoRef.current){ videoRef.current.srcObject=stream; videoRef.current.play(); }
-      setCamActiva(true);
-    } catch(e) { setCamErr('No se pudo acceder a la camara. Permiti el acceso en el navegador.'); }
-  };
-
-  const detenerCamara = () => {
-    if(streamRef.current) { streamRef.current.getTracks().forEach(t=>t.stop()); streamRef.current=null; }
-    setCamActiva(false);
-  };
-
-  const sacarFoto = () => {
-    const v=videoRef.current, c=canvasRef.current;
-    if(!v||!c) return;
-    c.width=v.videoWidth; c.height=v.videoHeight;
-    c.getContext('2d').drawImage(v,0,0);
-    setCapturada(c.toDataURL('image/jpeg',0.92).split(',')[1]);
-    detenerCamara();
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    setOcrOk(false); setOcrErr(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const url = ev.target.result;
+      setCapturada(url.split(',')[1]);
+      setCapturadaMime(file.type||'image/jpeg');
+    };
+    reader.readAsDataURL(file);
   };
 
   const analizarFoto = async () => {
     setAnalizando(true); setOcrErr(null);
     try {
-      const res = await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({b64:capturada,mime:'image/jpeg'})});
+      const res = await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({b64:capturada,mime:capturadaMime})});
       const data = await res.json();
       if(!data.ok){ setOcrErr('No reconoci un cheque. Completa los datos manualmente.'); }
       else {
@@ -324,7 +310,7 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
   };
 
   const volver = () => {
-    detenerCamara(); setCapturada(null); setOcrOk(false); setOcrErr(null);
+    setCapturada(null); setOcrOk(false); setOcrErr(null);
     setNumero(''); setMonto(''); setFechaCarga(today()); setFechaCobro(''); setDestino('ambos');
     setVista('lista');
   };
@@ -344,47 +330,40 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700}}>Cheques</div>
         {vista==='lista'
-          ? <button onClick={()=>{setVista('camara');iniciarCamara();}} className="tap" style={{background:'var(--accent)',color:'#0d0f18',padding:'8px 16px',borderRadius:10,fontWeight:700,fontSize:14}}>+ Nuevo cheque</button>
+          ? <button onClick={()=>setVista('camara')} className="tap" style={{background:'var(--accent)',color:'#0d0f18',padding:'8px 16px',borderRadius:10,fontWeight:700,fontSize:14}}>+ Nuevo cheque</button>
           : <button onClick={volver} className="tap" style={{background:'var(--card2)',color:'var(--sub)',padding:'8px 16px',borderRadius:10,fontWeight:600,fontSize:14,border:'1px solid var(--border)'}}>Volver</button>
         }
       </div>
 
       {vista==='camara' && (
         <Card style={{padding:12}}>
-          {camErr && <div style={{color:'var(--red)',fontSize:13,marginBottom:12,textAlign:'center',lineHeight:1.5}}>{camErr}</div>}
-          {!camActiva && !capturada && !camErr && (
-            <div style={{textAlign:'center',padding:'30px 0'}}>
-              <span className="spin" style={{fontSize:28,color:'var(--accent)'}}>o</span>
-              <div style={{color:'var(--sub)',fontSize:14,marginTop:10}}>Iniciando camara...</div>
-            </div>
-          )}
-          {camActiva && !capturada && (
+          {!capturada && (
             <>
-              <div style={{position:'relative',borderRadius:10,overflow:'hidden',marginBottom:14,background:'#000'}}>
-                <video ref={videoRef} autoPlay playsInline muted style={{width:'100%',display:'block',borderRadius:10}}/>
-                <div style={{position:'absolute',inset:'15%',border:'2px solid var(--accent)',borderRadius:8,opacity:.7,pointerEvents:'none'}}/>
-                <div style={{position:'absolute',bottom:8,left:0,right:0,textAlign:'center',color:'rgba(255,255,255,0.7)',fontSize:11}}>Encuadra el cheque</div>
+              <div style={{textAlign:'center',padding:'20px 0 16px'}}>
+                <div style={{fontSize:48,marginBottom:8}}>📷</div>
+                <div style={{color:'var(--sub)',fontSize:14,marginBottom:20}}>Saca o elegí una foto del cheque</div>
+                {/* Input que abre la camara nativa del celular */}
+                <label style={{display:'block',width:'100%',padding:16,borderRadius:14,background:'var(--accent)',color:'#0d0f18',fontFamily:'Syne',fontSize:17,fontWeight:800,textAlign:'center',cursor:'pointer'}}>
+                  📸 Abrir camara
+                  <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} style={{display:'none'}}/>
+                </label>
+                <label style={{display:'block',width:'100%',padding:14,borderRadius:14,background:'var(--card2)',color:'var(--sub)',fontFamily:'Syne',fontSize:15,fontWeight:600,textAlign:'center',cursor:'pointer',marginTop:10,border:'1px solid var(--border)'}}>
+                  🖼 Elegir de la galeria
+                  <input type="file" accept="image/*" onChange={handleFileSelect} style={{display:'none'}}/>
+                </label>
               </div>
-              <button onClick={sacarFoto} className="tap" style={{width:'100%',padding:16,borderRadius:14,background:'var(--accent)',color:'#0d0f18',fontFamily:'Syne',fontSize:17,fontWeight:800}}>
-                Sacar foto
-              </button>
             </>
           )}
           {capturada && (
             <>
-              <img src={'data:image/jpeg;base64,'+capturada} alt="cheque" style={{width:'100%',borderRadius:10,marginBottom:14,objectFit:'contain',maxHeight:220}}/>
+              <img src={'data:'+capturadaMime+';base64,'+capturada} alt="cheque" style={{width:'100%',borderRadius:10,marginBottom:14,objectFit:'contain',maxHeight:220}}/>
               <div style={{display:'flex',gap:10}}>
-                <button onClick={()=>{setCapturada(null);iniciarCamara();}} className="tap" style={{flex:1,padding:13,borderRadius:12,background:'var(--card2)',color:'var(--sub)',fontWeight:600,fontSize:14,border:'1px solid var(--border)'}}>Repetir</button>
+                <button onClick={()=>setCapturada(null)} className="tap" style={{flex:1,padding:13,borderRadius:12,background:'var(--card2)',color:'var(--sub)',fontWeight:600,fontSize:14,border:'1px solid var(--border)'}}>Repetir</button>
                 <button onClick={analizarFoto} disabled={analizando} className="tap" style={{flex:2,padding:13,borderRadius:12,background:'var(--blue)',color:'#fff',fontWeight:700,fontSize:15}}>
                   {analizando?'Analizando...':'Extraer con IA'}
                 </button>
               </div>
             </>
-          )}
-          {camErr && (
-            <button onClick={()=>setVista('form')} className="tap" style={{width:'100%',marginTop:12,padding:13,borderRadius:12,background:'var(--card2)',color:'var(--text)',fontWeight:600,fontSize:14,border:'1px solid var(--border)'}}>
-              Cargar manualmente
-            </button>
           )}
         </Card>
       )}
@@ -462,7 +441,7 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
           )}
         </>
       )}
-      <canvas ref={canvasRef} style={{display:'none'}}/>
+
     </div>
   );
 }
