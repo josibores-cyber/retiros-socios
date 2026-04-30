@@ -500,9 +500,11 @@ function PantallaCierre({cheques,onAcreditar,config}) {
   const [sel,setSel] = useState({});
   const [proc,setProc] = useState(false);
   const [done,setDone] = useState(false);
+  const [filtroD,setFiltroD] = useState('');
   const dColor = v=>v==='ambos'?'var(--accent)':v==='s0'?'var(--blue)':'var(--purple)';
   const dLabel = v=>v==='ambos'?'Ambos':v==='s0'?socios[0]:socios[1];
-  const pend = cheques.filter(c=>c.estado==='pendiente'&&monthKey(c.fecha_carga)===mes);
+  const todosD = [...new Set(cheques.filter(c=>c.estado==='pendiente'&&monthKey(c.fecha_carga)===mes).map(c=>c.destinatario).filter(Boolean))].sort();
+  const pend = cheques.filter(c=>c.estado==='pendiente'&&monthKey(c.fecha_carga)===mes&&(!filtroD||c.destinatario===filtroD));
   const selItems = pend.filter(c=>sel[c.id]);
   const totS0 = selItems.filter(c=>c.destino==='s0').reduce((a,c)=>a+c.monto,0)+selItems.filter(c=>c.destino==='ambos').reduce((a,c)=>a+c.monto/2,0);
   const totS1 = selItems.filter(c=>c.destino==='s1').reduce((a,c)=>a+c.monto,0)+selItems.filter(c=>c.destino==='ambos').reduce((a,c)=>a+c.monto/2,0);
@@ -530,10 +532,16 @@ function PantallaCierre({cheques,onAcreditar,config}) {
       <div style={{flexShrink:0,paddingBottom:10}}>
         <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700,marginBottom:4}}>Cierre mensual</div>
         <p style={{color:'var(--sub)',fontSize:13,marginBottom:10}}>Tilda los cheques a acreditar. Los retiros se asignan automaticamente.</p>
-        <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});}}>
+        <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});setFiltroD('');}}>
           {meses.map(m=><option key={m} value={m}>{fmtMes(m)}</option>)}
           {!meses.includes(mes)&&<option value={mes}>{fmtMes(mes)}</option>}
         </select>
+        {todosD.length>0&&(
+          <select value={filtroD} onChange={e=>{setFiltroD(e.target.value);setSel({});}} style={{marginTop:8}}>
+            <option value=''>Todos los destinatarios</option>
+            {todosD.map(d=><option key={d} value={d}>{d}</option>)}
+          </select>
+        )}
       </div>
 
       {pend.length===0
