@@ -524,21 +524,24 @@ function PantallaCierre({cheques,onAcreditar,config}) {
   };
 
   return (
-    <div className="fade" style={{display:'flex',flexDirection:'column',gap:10}}>
+    <div className="fade" style={{height:'calc(100vh - 130px)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
-      {/* Sube con scroll */}
-      <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700}}>Cierre mensual</div>
-      <p style={{color:'var(--sub)',fontSize:13,marginTop:-6}}>Tilda los cheques a acreditar. Los retiros se asignan automaticamente.</p>
-      <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});}}>
-        {meses.map(m=><option key={m} value={m}>{fmtMes(m)}</option>)}
-        {!meses.includes(mes)&&<option value={mes}>{fmtMes(mes)}</option>}
-      </select>
+      {/* PARTE 1: sube y desaparece */}
+      <div style={{flexShrink:0,paddingBottom:10}}>
+        <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700,marginBottom:4}}>Cierre mensual</div>
+        <p style={{color:'var(--sub)',fontSize:13,marginBottom:10}}>Tilda los cheques a acreditar. Los retiros se asignan automaticamente.</p>
+        <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});}}>
+          {meses.map(m=><option key={m} value={m}>{fmtMes(m)}</option>)}
+          {!meses.includes(mes)&&<option value={mes}>{fmtMes(mes)}</option>}
+        </select>
+      </div>
 
       {pend.length===0
         ? <div style={{textAlign:'center',color:'var(--sub)',padding:'40px 0',fontSize:14}}>{done?'✓ Cierre realizado!':'No hay cheques pendientes para este periodo.'}</div>
-        : <>
-          {/* Sticky: resumen + botón + filtros */}
-          <div style={{position:'sticky',top:-12,zIndex:20,background:'var(--bg)',paddingTop:8,paddingBottom:8,marginTop:-8}}>
+        : <div style={{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'}}>
+
+          {/* PARTE 2: fija, no scrollea */}
+          <div style={{flexShrink:0,background:'var(--bg)',paddingBottom:8}}>
             <div style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',marginBottom:8}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                 <span style={{color:'var(--blue)',fontSize:13}}>{socios[0]}</span>
@@ -560,30 +563,33 @@ function PantallaCierre({cheques,onAcreditar,config}) {
             </div>
           </div>
 
-          {/* Lista */}
-          {pend.map(c=>{
-            const s=!!sel[c.id];
-            return (
-              <div key={c.id} onClick={()=>setSel(prev=>({...prev,[c.id]:!prev[c.id]}))}
-                style={{display:'flex',alignItems:'center',gap:12,padding:'11px 12px',background:s?'var(--accent)10':'var(--card)',border:'1.5px solid '+(s?'var(--accent)55':'var(--border)'),borderRadius:12,cursor:'pointer',transition:'all .15s'}}>
-                <div style={{width:20,height:20,borderRadius:5,border:'2px solid '+(s?'var(--accent)':'var(--border)'),background:s?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  {s&&<span style={{color:'#0d0f18',fontSize:11,fontWeight:800}}>✓</span>}
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontFamily:'DM Mono',fontSize:16,fontWeight:500}}>{fmt(c.monto)}</span>
-                    <Pill color={dColor(c.destino)}>{dLabel(c.destino)}</Pill>
+          {/* PARTE 3: solo esta scrollea */}
+          <div style={{flex:1,overflowY:'auto',paddingBottom:16,display:'flex',flexDirection:'column',gap:8}}>
+            {pend.map(c=>{
+              const s=!!sel[c.id];
+              return (
+                <div key={c.id} onClick={()=>setSel(prev=>({...prev,[c.id]:!prev[c.id]}))}
+                  style={{display:'flex',alignItems:'center',gap:12,padding:'11px 12px',background:s?'var(--accent)10':'var(--card)',border:'1.5px solid '+(s?'var(--accent)55':'var(--border)'),borderRadius:12,cursor:'pointer',transition:'all .15s',flexShrink:0}}>
+                  <div style={{width:20,height:20,borderRadius:5,border:'2px solid '+(s?'var(--accent)':'var(--border)'),background:s?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {s&&<span style={{color:'#0d0f18',fontSize:11,fontWeight:800}}>✓</span>}
                   </div>
-                  <div style={{fontSize:12,color:'var(--sub)',marginTop:2}}>
-                    {c.destinatario&&<span style={{color:'var(--text)',marginRight:6}}>{c.destinatario} ·</span>}
-                    #{c.numero||'—'} · cobro: {c.fecha_cobro||'—'}
-                    {c.destino==='ambos'&&s&&<span style={{color:'var(--accent)',marginLeft:6}}>{fmt(c.monto/2)} c/u</span>}
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontFamily:'DM Mono',fontSize:16,fontWeight:500}}>{fmt(c.monto)}</span>
+                      <Pill color={dColor(c.destino)}>{dLabel(c.destino)}</Pill>
+                    </div>
+                    <div style={{fontSize:12,color:'var(--sub)',marginTop:2}}>
+                      {c.destinatario&&<span style={{color:'var(--text)',marginRight:6}}>{c.destinatario} ·</span>}
+                      #{c.numero||'—'} · cobro: {c.fecha_cobro||'—'}
+                      {c.destino==='ambos'&&s&&<span style={{color:'var(--accent)',marginLeft:6}}>{fmt(c.monto/2)} c/u</span>}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </>
+              );
+            })}
+          </div>
+
+        </div>
       }
     </div>
   );
@@ -766,7 +772,7 @@ export default function App() {
           <button onClick={()=>setTab('tarjeta')} className="tap" style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--sub)',padding:'8px 14px',borderRadius:10,fontSize:13,fontWeight:600}}>Tarjeta</button>
         )}
       </div>
-      <div style={{flex:1,padding:'12px 16px 90px',overflowY:'auto'}}>{renderView()}</div>
+      <div style={{flex:1,padding:'12px 16px 90px',overflowY:tab==='cierre'?'hidden':'auto'}}>{renderView()}</div>
       <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:520,background:'var(--card)',borderTop:'1px solid var(--border)',display:'flex',zIndex:100,paddingBottom:'env(safe-area-inset-bottom,0px)'}}>
         {TABS.map(t=>{
           const active=tab===t.id;
