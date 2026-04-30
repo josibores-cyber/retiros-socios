@@ -35,7 +35,7 @@ const lsSet = (key,val) => { try { localStorage.setItem(key,JSON.stringify(val))
 
 async function loadConfig() {
   const { data } = await supabase.from('config').select('*').eq('id',1).single();
-  return data || { empresa:'Mi Empresa', socios:['Socio A','Socio B'] };
+  return data || { empresa:'Mi Empresa', socios:['Socio A','Socio B'], destinatarios:[] };
 }
 async function saveConfig(cfg) {
   await supabase.from('config').upsert({ id:1, empresa:cfg.empresa, socios:cfg.socios });
@@ -406,7 +406,16 @@ function PantallaCheques({cheques,onSaveCheque,config,socioIdx}) {
           {ocrOk && <div style={{background:'var(--green)18',border:'1px solid var(--green)44',borderRadius:10,padding:'8px 12px',fontSize:13,color:'var(--green)',marginBottom:14}}>Datos extraidos. Revisa y corrige si hace falta.</div>}
           {ocrErr && <div style={{background:'var(--red)18',border:'1px solid var(--red)44',borderRadius:10,padding:'8px 12px',fontSize:13,color:'var(--red)',marginBottom:14}}>{ocrErr}</div>}
           <div style={{display:'flex',flexDirection:'column',gap:14}}>
-            <div><Lbl>Destinatario</Lbl><input type="text" placeholder="Ej: Colegio San Jose" value={destinatario} onChange={e=>setDestinatario(e.target.value)}/></div>
+            <div>
+              <Lbl>Destinatario</Lbl>
+              {config.destinatarios&&config.destinatarios.length>0
+                ? <select value={destinatario} onChange={e=>setDestinatario(e.target.value)}>
+                    <option value=''>-- Seleccionar --</option>
+                    {config.destinatarios.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                : <input type="text" placeholder="Carga destinatarios en Config" value={destinatario} onChange={e=>setDestinatario(e.target.value)}/>
+              }
+            </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               <div><Lbl>Nro. cheque</Lbl><input type="text" placeholder="00012345" value={numero} onChange={e=>setNumero(e.target.value)}/></div>
               <div><Lbl>Banco</Lbl><input type="text" placeholder="Ej: Galicia" value={banco} onChange={e=>setBanco(e.target.value)}/></div>
@@ -532,16 +541,18 @@ function PantallaCierre({cheques,onAcreditar,config}) {
       <div style={{flexShrink:0,paddingBottom:10}}>
         <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700,marginBottom:4}}>Cierre mensual</div>
         <p style={{color:'var(--sub)',fontSize:13,marginBottom:10}}>Tilda los cheques a acreditar. Los retiros se asignan automaticamente.</p>
-        <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});setFiltroD('');}}>
-          {meses.map(m=><option key={m} value={m}>{fmtMes(m)}</option>)}
-          {!meses.includes(mes)&&<option value={mes}>{fmtMes(mes)}</option>}
-        </select>
-        {todosD.length>0&&(
-          <select value={filtroD} onChange={e=>{setFiltroD(e.target.value);setSel({});}} style={{marginTop:8}}>
-            <option value=''>Todos los destinatarios</option>
-            {todosD.map(d=><option key={d} value={d}>{d}</option>)}
+        <div style={{display:'flex',gap:8}}>
+          <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});setFiltroD('');}} style={{flex:1}}>
+            {meses.map(m=><option key={m} value={m}>{fmtMes(m)}</option>)}
+            {!meses.includes(mes)&&<option value={mes}>{fmtMes(mes)}</option>}
           </select>
-        )}
+          {todosD.length>0&&(
+            <select value={filtroD} onChange={e=>{setFiltroD(e.target.value);setSel({});}} style={{flex:1}}>
+              <option value=''>Todos</option>
+              {todosD.map(d=><option key={d} value={d}>{d}</option>)}
+            </select>
+          )}
+        </div>
       </div>
 
       {pend.length===0
@@ -651,8 +662,21 @@ function PantallaConfig({config,onSave,onLogout}) {
   const [empresa,setEmpresa] = useState(config.empresa);
   const [s0,setS0] = useState(config.socios[0]);
   const [s1,setS1] = useState(config.socios[1]);
+  const [destinatarios,setDestinatarios] = useState(config.destinatarios||[]);
+  const [nuevoD,setNuevoD] = useState('');
   const [saved,setSaved] = useState(false);
-  const guardar = async () => { await onSave({empresa,socios:[s0,s1]}); setSaved(true); setTimeout(()=>setSaved(false),2000); };
+
+  const guardar = async () => { await onSave({empresa,socios:[s0,s1],destinatarios}); setSaved(true); setTimeout(()=>setSaved(false),2000); };
+
+  const agregarD = () => {
+    const d = nuevoD.trim();
+    if(!d||destinatarios.includes(d)) return;
+    setDestinatarios(prev=>[...prev,d].sort());
+    setNuevoD('');
+  };
+
+  const eliminarD = (d) => setDestinatarios(prev=>prev.filter(x=>x!==d));
+
   return (
     <div className="fade" style={{display:'flex',flexDirection:'column',gap:14}}>
       <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700}}>Configuracion</div>
@@ -661,9 +685,33 @@ function PantallaConfig({config,onSave,onLogout}) {
           <div><Lbl>Empresa</Lbl><input value={empresa} onChange={e=>setEmpresa(e.target.value)}/></div>
           <div><Lbl>Nombre Socio 1</Lbl><input value={s0} onChange={e=>setS0(e.target.value)}/></div>
           <div><Lbl>Nombre Socio 2</Lbl><input value={s1} onChange={e=>setS1(e.target.value)}/></div>
-          <button onClick={guardar} className="tap" style={{padding:14,borderRadius:12,background:saved?'var(--green)':'var(--accent)',color:'#0d0f18',fontWeight:700,fontSize:15}}>{saved?'Guardado':'Guardar cambios'}</button>
+          <button onClick={guardar} className="tap" style={{padding:14,borderRadius:12,background:saved?'var(--green)':'var(--accent)',color:'#0d0f18',fontWeight:700,fontSize:15}}>{saved?'✓ Guardado':'Guardar cambios'}</button>
         </div>
       </Card>
+
+      <Card>
+        <Lbl>Destinatarios de cheques</Lbl>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <input
+            type="text"
+            placeholder="Ej: Colegio San Jose"
+            value={nuevoD}
+            onChange={e=>setNuevoD(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&agregarD()}
+          />
+          <button onClick={agregarD} className="tap" style={{padding:'0 16px',borderRadius:10,background:'var(--accent)',color:'#0d0f18',fontWeight:700,fontSize:14,whiteSpace:'nowrap',flexShrink:0}}>+ Agregar</button>
+        </div>
+        {destinatarios.length===0
+          ? <div style={{color:'var(--muted)',fontSize:13}}>No hay destinatarios cargados.</div>
+          : destinatarios.map(d=>(
+            <div key={d} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
+              <span style={{fontSize:14}}>{d}</span>
+              <button onClick={()=>eliminarD(d)} style={{background:'none',color:'var(--red)',fontSize:14,padding:'4px 8px',fontWeight:600}}>✕</button>
+            </div>
+          ))
+        }
+      </Card>
+
       <button onClick={onLogout} className="tap" style={{padding:14,borderRadius:12,background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',fontWeight:600,fontSize:15}}>Cambiar de socio</button>
     </div>
   );
