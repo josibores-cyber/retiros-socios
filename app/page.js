@@ -685,7 +685,6 @@ function PantallaConfig({config,onSave,onLogout}) {
           <div><Lbl>Empresa</Lbl><input value={empresa} onChange={e=>setEmpresa(e.target.value)}/></div>
           <div><Lbl>Nombre Socio 1</Lbl><input value={s0} onChange={e=>setS0(e.target.value)}/></div>
           <div><Lbl>Nombre Socio 2</Lbl><input value={s1} onChange={e=>setS1(e.target.value)}/></div>
-          <button onClick={guardar} className="tap" style={{padding:14,borderRadius:12,background:saved?'var(--green)':'var(--accent)',color:'#0d0f18',fontWeight:700,fontSize:15}}>{saved?'✓ Guardado':'Guardar cambios'}</button>
         </div>
       </Card>
 
@@ -712,6 +711,7 @@ function PantallaConfig({config,onSave,onLogout}) {
         }
       </Card>
 
+      <button onClick={guardar} className="tap" style={{padding:14,borderRadius:12,background:saved?'var(--green)':'var(--accent)',color:'#0d0f18',fontWeight:700,fontSize:16}}>{saved?'✓ Guardado':'Guardar cambios'}</button>
       <button onClick={onLogout} className="tap" style={{padding:14,borderRadius:12,background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',fontWeight:600,fontSize:15}}>Cambiar de socio</button>
     </div>
   );
