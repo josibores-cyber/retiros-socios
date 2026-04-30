@@ -524,50 +524,48 @@ function PantallaCierre({cheques,onAcreditar,config}) {
   };
 
   return (
-    <div className="fade" style={{display:'flex',flexDirection:'column',height:'calc(100vh - 130px)'}}>
+    <div className="fade" style={{display:'flex',flexDirection:'column',gap:10}}>
 
-      {/* Parte que sube con scroll: título, subtítulo, fecha */}
-      <div style={{flexShrink:0,paddingBottom:8}}>
-        <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700,marginBottom:4}}>Cierre mensual</div>
-        <p style={{color:'var(--sub)',fontSize:13,marginBottom:10}}>Tilda los cheques a acreditar. Los retiros se asignan automaticamente.</p>
-        <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});}} style={{width:'100%',marginBottom:8}}>
-          {meses.map(m=><option key={m} value={m}>{fmtMes(m)}</option>)}
-          {!meses.includes(mes)&&<option value={mes}>{fmtMes(mes)}</option>}
-        </select>
-      </div>
+      {/* Sube con scroll */}
+      <div style={{fontFamily:'Syne',fontSize:20,fontWeight:700}}>Cierre mensual</div>
+      <p style={{color:'var(--sub)',fontSize:13,marginTop:-6}}>Tilda los cheques a acreditar. Los retiros se asignan automaticamente.</p>
+      <select value={mes} onChange={e=>{setMes(e.target.value);setSel({});}}>
+        {meses.map(m=><option key={m} value={m}>{fmtMes(m)}</option>)}
+        {!meses.includes(mes)&&<option value={mes}>{fmtMes(mes)}</option>}
+      </select>
 
-      {/* Parte fija: resumen + botón + filtros */}
-      {pend.length>0&&<div style={{flexShrink:0,position:'sticky',top:0,background:'var(--bg)',zIndex:10,paddingBottom:8}}>
-        <div style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',marginBottom:8}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-            <span style={{color:'var(--blue)',fontSize:13}}>{socios[0]}</span>
-            <span style={{fontFamily:'DM Mono',color:'var(--blue)',fontSize:13}}>{fmt(totS0)}</span>
+      {pend.length===0
+        ? <div style={{textAlign:'center',color:'var(--sub)',padding:'40px 0',fontSize:14}}>{done?'✓ Cierre realizado!':'No hay cheques pendientes para este periodo.'}</div>
+        : <>
+          {/* Sticky: resumen + botón + filtros */}
+          <div style={{position:'sticky',top:-12,zIndex:20,background:'var(--bg)',paddingTop:8,paddingBottom:8,marginTop:-8}}>
+            <div style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:12,padding:'10px 14px',marginBottom:8}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{color:'var(--blue)',fontSize:13}}>{socios[0]}</span>
+                <span style={{fontFamily:'DM Mono',color:'var(--blue)',fontSize:13}}>{fmt(totS0)}</span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
+                <span style={{color:'var(--purple)',fontSize:13}}>{socios[1]}</span>
+                <span style={{fontFamily:'DM Mono',color:'var(--purple)',fontSize:13}}>{fmt(totS1)}</span>
+              </div>
+              <button onClick={acreditar} disabled={proc||done||selItems.length===0} className="tap"
+                style={{width:'100%',padding:11,borderRadius:10,background:done?'var(--green)':selItems.length===0?'var(--muted)':'var(--accent)',color:'#0d0f18',fontFamily:'Syne',fontSize:14,fontWeight:800}}>
+                {done?'✓ Acreditado':proc?'Procesando...':selItems.length===0?'Selecciona cheques':'Acreditar '+selItems.length+' cheque'+(selItems.length!==1?'s':'')}
+              </button>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <button onClick={()=>{const a={};pend.forEach(c=>a[c.id]=true);setSel(a);}} className="tap" style={{background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',padding:'5px 12px',borderRadius:8,fontSize:12,fontWeight:600}}>Todos</button>
+              <button onClick={()=>setSel({})} className="tap" style={{background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',padding:'5px 12px',borderRadius:8,fontSize:12,fontWeight:600}}>Ninguno</button>
+              <span style={{fontSize:12,color:'var(--sub)',marginLeft:'auto'}}>{selItems.length}/{pend.length} seleccionados</span>
+            </div>
           </div>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
-            <span style={{color:'var(--purple)',fontSize:13}}>{socios[1]}</span>
-            <span style={{fontFamily:'DM Mono',color:'var(--purple)',fontSize:13}}>{fmt(totS1)}</span>
-          </div>
-          <button onClick={acreditar} disabled={proc||done||selItems.length===0} className="tap"
-            style={{width:'100%',padding:11,borderRadius:10,background:done?'var(--green)':selItems.length===0?'var(--muted)':'var(--accent)',color:'#0d0f18',fontFamily:'Syne',fontSize:14,fontWeight:800}}>
-            {done?'✓ Acreditado':proc?'Procesando...':selItems.length===0?'Selecciona cheques':'Acreditar '+selItems.length+' cheque'+(selItems.length!==1?'s':'')}
-          </button>
-        </div>
-        <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6}}>
-          <button onClick={()=>{const a={};pend.forEach(c=>a[c.id]=true);setSel(a);}} className="tap" style={{background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',padding:'5px 12px',borderRadius:8,fontSize:12,fontWeight:600}}>Todos</button>
-          <button onClick={()=>setSel({})} className="tap" style={{background:'var(--card2)',border:'1px solid var(--border)',color:'var(--sub)',padding:'5px 12px',borderRadius:8,fontSize:12,fontWeight:600}}>Ninguno</button>
-          <span style={{fontSize:12,color:'var(--sub)',marginLeft:'auto'}}>{selItems.length}/{pend.length} seleccionados</span>
-        </div>
-      </div>}
 
-      {/* Lista scrolleable */}
-      <div style={{flex:1,overflowY:'auto',paddingBottom:16}}>
-        {pend.length===0
-          ? <div style={{textAlign:'center',color:'var(--sub)',padding:'40px 0',fontSize:14}}>{done?'✓ Cierre realizado!':'No hay cheques pendientes para este periodo.'}</div>
-          : pend.map(c=>{
+          {/* Lista */}
+          {pend.map(c=>{
             const s=!!sel[c.id];
             return (
               <div key={c.id} onClick={()=>setSel(prev=>({...prev,[c.id]:!prev[c.id]}))}
-                style={{display:'flex',alignItems:'center',gap:12,padding:'11px 12px',background:s?'var(--accent)10':'var(--card)',border:'1.5px solid '+(s?'var(--accent)55':'var(--border)'),borderRadius:12,cursor:'pointer',transition:'all .15s',marginBottom:8}}>
+                style={{display:'flex',alignItems:'center',gap:12,padding:'11px 12px',background:s?'var(--accent)10':'var(--card)',border:'1.5px solid '+(s?'var(--accent)55':'var(--border)'),borderRadius:12,cursor:'pointer',transition:'all .15s'}}>
                 <div style={{width:20,height:20,borderRadius:5,border:'2px solid '+(s?'var(--accent)':'var(--border)'),background:s?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                   {s&&<span style={{color:'#0d0f18',fontSize:11,fontWeight:800}}>✓</span>}
                 </div>
@@ -584,9 +582,9 @@ function PantallaCierre({cheques,onAcreditar,config}) {
                 </div>
               </div>
             );
-          })
-        }
-      </div>
+          })}
+        </>
+      }
     </div>
   );
 }
